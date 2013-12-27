@@ -10,23 +10,24 @@
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(6, PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
   strip.begin();
   Wire.begin(4);                // join i2c bus with address #4
   Wire.onReceive(receiveEvent); // register event
   Serial.begin(9600);           // start serial for output
+  Serial.print("setup\n\r");
   strip.show(); // Initialize all pixels to 'off'
 }
 
 void loop() {
   // Some example procedures showing how to display to the pixels:
-  colorWipe(strip.Color(255, 0, 0), 50); // Red
-  colorWipe(strip.Color(0, 255, 0), 50); // Green
-  colorWipe(strip.Color(0, 0, 255), 50); // Blue
-  rainbow(20);
-  rainbowCycle(20);
+  //colorWipe(strip.Color(255, 0, 0), 50); // Red
+  //colorWipe(strip.Color(0, 255, 0), 50); // Green
+  //colorWipe(strip.Color(0, 0, 255), 50); // Blue
+  //rainbow(20);
+  //rainbowCycle(20);
   delay(100);
 }
 

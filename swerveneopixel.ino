@@ -3,6 +3,17 @@
 
 #define PIN 6
 
+#define RED strip.Color(100,0,0)
+#define GREEN strip.Color(0,100,0)
+#define BLUE strip.Color(0,0,100)
+#define OFF strip.Color(0,0,0)
+#define BLANKS 39
+#define SIDELEN 40
+
+#define STRIPLEN 160
+
+#define I2CADDR 0x4
+
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -10,15 +21,18 @@
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(6, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPLEN, PIN, NEO_GRB + NEO_KHZ800);
+
 
 void setup() {
   strip.begin();
-  Wire.begin(4);                // join i2c bus with address #4
+  Wire.begin(I2CADDR);                // join i2c bus with address #4
   Wire.onReceive(receiveEvent); // register event
   Serial.begin(9600);           // start serial for output
   Serial.print("setup\n\r");
   strip.show(); // Initialize all pixels to 'off'
+  colorWipe(RED, 0);
+  colorWipe(OFF,0);  
 }
 
 void loop() {
@@ -33,13 +47,18 @@ void loop() {
 
 void receiveEvent(int howMany)
 {
+  char c = 0;
   while(1 < Wire.available()) // loop through all but the last
   {
-    char c = Wire.read(); // receive byte as a character
-    Serial.print(c);         // print the character
+    c = Wire.read(); // receive byte as a character
+    Serial.println(c);         // print the character
   }
   int x = Wire.read();    // receive byte as an integer
   Serial.println(x);         // print the integer
+  if(c == 1)   
+    colorWipe(BLUE, 0);
+  else
+    frontback(x);
 }
 
 // Fill the dots one after the other with a color
@@ -50,6 +69,26 @@ void colorWipe(uint32_t c, uint8_t wait) {
       delay(wait);
   }
 }
+
+void frontback(uint8_t start) {
+  uint8_t i, j;
+  
+  while(start > SIDELEN)
+      start -= SIDELEN;
+  
+  for(j=0,i=0; j<BLANKS; j++)
+    strip.setPixelColor(i++,OFF);
+  for(j=0; j<start; j++)
+    strip.setPixelColor(i++,RED);
+  for(j=0;j<SIDELEN; j++)
+    strip.setPixelColor(i++,GREEN);
+  for(j=0;j<SIDELEN; j++)
+    strip.setPixelColor(i++,RED);
+  for(j=0;j<SIDELEN; j++)
+    strip.setPixelColor(i++,GREEN);
+  strip.show();
+}
+
 
 void rainbow(uint8_t wait) {
   uint16_t i, j;

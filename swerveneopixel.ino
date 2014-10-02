@@ -73,19 +73,34 @@ void colorWipe(uint32_t c, uint8_t wait) {
 void frontback(uint8_t start) {
   uint8_t i, j;
   
-  while(start > SIDELEN)
-      start -= SIDELEN;
+  while(start > SIDELEN*2)
+      start -= SIDELEN*2;
   
-  for(j=0,i=0; j<BLANKS; j++)
-    strip.setPixelColor(i++,OFF);
-  for(j=0; j<start; j++)
-    strip.setPixelColor(i++,RED);
-  for(j=0;j<SIDELEN; j++)
-    strip.setPixelColor(i++,GREEN);
-  for(j=0;j<SIDELEN; j++)
-    strip.setPixelColor(i++,RED);
-  for(j=0;j<SIDELEN; j++)
-    strip.setPixelColor(i++,GREEN);
+  if(start < SIDELEN) {
+      for(j=0,i=0; j<BLANKS; j++)
+          strip.setPixelColor(i++,OFF);
+      for(j=0; j<start; j++)
+          strip.setPixelColor(i++,RED);
+      for(j=0;j<SIDELEN; j++)
+          strip.setPixelColor(i++,GREEN);
+      for(j=0;j<SIDELEN; j++)
+          strip.setPixelColor(i++,RED);
+      for(j=0;j<SIDELEN; j++)
+          strip.setPixelColor(i++,GREEN);
+  }
+  else {
+      start -= SIDELEN;
+      for(j=0,i=0; j<BLANKS; j++)
+          strip.setPixelColor(i++,OFF);
+      for(j=0; j<start; j++)
+          strip.setPixelColor(i++,GREEN);
+      for(j=0;j<SIDELEN; j++)
+          strip.setPixelColor(i++,RED);
+      for(j=0;j<SIDELEN; j++)
+          strip.setPixelColor(i++,GREEN);
+      for(j=0;j<SIDELEN; j++)
+          strip.setPixelColor(i++,RED);
+  }
   strip.show();
 }
 

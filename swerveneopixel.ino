@@ -21,8 +21,12 @@
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPLEN, PIN, NEO_GRB + NEO_KHZ800);
 
+uint8_t goti2c = 0;
+uint8_t pattern[16] = {0,0,0,0,0,20,60,100,150,255,255,255,150,100,60,20};
+uint8_t place = 0;
 
 void setup() {
   strip.begin();
@@ -35,6 +39,12 @@ void setup() {
   colorWipe(OFF,0);  
 }
 
+void fillpattern () {
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, strip.Color(pattern[(i+place)%16],0,0));
+  }
+}
+
 void loop() {
   // Some example procedures showing how to display to the pixels:
   //colorWipe(strip.Color(255, 0, 0), 50); // Red
@@ -42,11 +52,38 @@ void loop() {
   //colorWipe(strip.Color(0, 0, 255), 50); // Blue
   //rainbow(20);
   //rainbowCycle(20);
-  delay(100);
+
+  if(goti2c == 1) {
+    delay(100);
+    return;
+  }
+
+  for(uint8_t i=0; i<5; i++) {
+      fillpattern();
+      strip.show();
+      place++;
+      delay(10);
+      if(goti2c == 1) return;
+   }
+   
+   delay(300);
+   if(goti2c == 1) return;
+
+  for(uint8_t i=0; i<5; i++) {
+      fillpattern();
+      strip.show();
+      place++;
+      delay(10);
+      if(goti2c == 1) return;
+   }
+
+   delay(1000);
 }
 
 void receiveEvent(int howMany)
 {
+  goti2c = 1;
+
   char c = 0;
   while(1 < Wire.available()) // loop through all but the last
   {

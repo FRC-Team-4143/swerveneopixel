@@ -6,6 +6,7 @@
 #define RED strip.Color(100,0,0)
 #define GREEN strip.Color(0,100,0)
 #define BLUE strip.Color(0,0,100)
+#define YELLOW strip.Color(100,33,0)
 #define OFF strip.Color(0,0,0)
 #define BLANKS 39
 #define SIDELEN 40
@@ -92,10 +93,16 @@ void receiveEvent(int howMany)
   }
   int x = Wire.read();    // receive byte as an integer
   Serial.println(x);         // print the integer
-  if(c == 1)   
-    colorWipe(BLUE, 0);
-  else
+  if(c == 0)
     frontback(x);
+  else if(c == 1)   
+    colorWipe(BLUE, 0);
+  else if (c == 2)
+    colorWipe(RED, 0);
+  else if (c == 3)
+    colorWipe(GREEN, 0);
+  else if (c == 4)
+    colorWipe(YELLOW, 0);
 }
 
 // Fill the dots one after the other with a color

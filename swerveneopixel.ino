@@ -6,12 +6,12 @@
 #define RED strip.Color(100,0,0)
 #define GREEN strip.Color(0,100,0)
 #define BLUE strip.Color(0,0,100)
-#define YELLOW strip.Color(100,33,0)
+#define YELLOW strip.Color(100,100,0)
 #define OFF strip.Color(0,0,0)
 #define BLANKS 39
 #define SIDELEN 40
 
-#define STRIPLEN 160
+#define STRIPLEN 160+16
 
 #define I2CADDR 0x4
 
@@ -29,15 +29,39 @@ uint8_t goti2c = 0;
 uint8_t pattern[16] = {0,0,0,0,0,20,60,100,150,255,255,255,150,100,60,20};
 uint8_t place = 0;
 
+
+#define NUM_LEDS          80
+#define GRAVITY           -9.81              // Downward (negative) acceleration of gravity in m/s^2
+#define h0                1                  // Starting height, in meters, of the ball (strip length)
+#define NUM_BALLS         3                  // Number of bouncing balls you want (recommend < 7, but 20 is fun in its own way)
+
+float h[NUM_BALLS] ;                         // An array of heights
+float vImpact0 = sqrt( -2 * GRAVITY * h0 );  // Impact velocity of the ball when it hits the ground if "dropped" from the top of the strip
+float vImpact[NUM_BALLS] ;                   // As time goes on the impact velocity will change, so make an array to store those values
+float tCycle[NUM_BALLS] ;                    // The time since the last time the ball struck the ground
+int   pos[NUM_BALLS] ;                       // The integer position of the dot on the strip (LED index)
+long  tLast[NUM_BALLS] ;                     // The clock time of the last ground strike
+float COR[NUM_BALLS] ;                       // Coefficient of Restitution (bounce damping)
+
+
 void setup() {
   strip.begin();
   Wire.begin(I2CADDR);                // join i2c bus with address #4
   Wire.onReceive(receiveEvent); // register event
-  Serial.begin(9600);           // start serial for output
-  Serial.print("setup\n\r");
+  //Serial.begin(9600);           // start serial for output
+  //Serial.print("setup\n\r");
   strip.show(); // Initialize all pixels to 'off'
   colorWipe(RED, 0);
   colorWipe(OFF,0);  
+  
+  for (int i = 0 ; i < NUM_BALLS ; i++) {    // Initialize variables
+    tLast[i] = millis();
+    h[i] = h0;
+    pos[i] = 0;                              // Balls start on the ground
+    vImpact[i] = vImpact0;                   // And "pop" up at vImpact0
+    tCycle[i] = 0;
+    COR[i] = 0.90 - float(i)/pow(NUM_BALLS,2); 
+  }
 }
 
 void fillpattern () {
@@ -54,37 +78,37 @@ void loop() {
   //rainbow(20);
   //rainbowCycle(20);
 
-  if(goti2c == 1) {
-    delay(100);
-    return;
-  }
+  if( goti2c == 0)
+    bloodmode();
+  else if( goti2c == 5)
+    doublebounce();
+  else if( goti2c == 6 )
+    rainbowCycle(50);
+}
 
+void bloodmode() {
   for(uint8_t i=0; i<5; i++) {
       fillpattern();
       strip.show();
       place++;
       delay(10);
-      if(goti2c == 1) return;
    }
    
    delay(300);
-   if(goti2c == 1) return;
 
   for(uint8_t i=0; i<5; i++) {
       fillpattern();
       strip.show();
       place++;
       delay(10);
-      if(goti2c == 1) return;
    }
 
    delay(1000);
 }
 
+
 void receiveEvent(int howMany)
 {
-  goti2c = 1;
-
   char c = 0;
   while(1 < Wire.available()) // loop through all but the last
   {
@@ -92,17 +116,16 @@ void receiveEvent(int howMany)
     Serial.println(c);         // print the character
   }
   int x = Wire.read();    // receive byte as an integer
-  Serial.println(x);         // print the integer
-  if(c == 0)
-    frontback(x);
-  else if(c == 1)   
+  //Serial.println(x);         // print the integer
+  goti2c = c;
+  if(c == 1)   
     colorWipe(BLUE, 0);
   else if (c == 2)
-    colorWipe(RED, 0);
+    colorFill(RED);
   else if (c == 3)
-    colorWipe(GREEN, 0);
+    colorFill(GREEN);
   else if (c == 4)
-    colorWipe(YELLOW, 0);
+    colorFill(YELLOW);
 }
 
 // Fill the dots one after the other with a color
@@ -112,6 +135,13 @@ void colorWipe(uint32_t c, uint8_t wait) {
       strip.show();
       delay(wait);
   }
+}
+
+void colorFill(uint32_t c) {
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, c);
+  }
+  strip.show();
 }
 
 void frontback(uint8_t start) {
@@ -186,5 +216,36 @@ uint32_t Wheel(byte WheelPos) {
    WheelPos -= 170;
    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
+}
+
+
+void doublebounce() {
+    for (int i = 0 ; i < NUM_BALLS ; i++) {
+      tCycle[i] =  millis() - tLast[i] ;     // Calculate the time since the last time the ball was on the ground
+  
+      // A little kinematics equation calculates positon as a function of time, acceleration (gravity) and intial velocity
+      h[i] = 0.5 * GRAVITY * pow( tCycle[i]/1000 , 2.0 ) + vImpact[i] * tCycle[i]/1000;
+  
+      if ( h[i] < 0 ) {                      
+        h[i] = 0;                            // If the ball crossed the threshold of the "ground," put it back on the ground
+        vImpact[i] = COR[i] * vImpact[i] ;   // and recalculate its new upward velocity as it's old velocity * COR
+        tLast[i] = millis();
+  
+        if ( vImpact[i] < 0.01 ) vImpact[i] = vImpact0;  // If the ball is barely moving, "pop" it back up at vImpact0
+      }
+      pos[i] = round( h[i] * (NUM_LEDS - 1) / h0);       // Map "h" to a "pos" integer index position on the LED strip
+    }
+  
+    //Choose color of LEDs, then the "pos" LED on
+    for (int i = 0 ; i < NUM_BALLS ; i++) {
+      strip.setPixelColor(pos[i], ((uint8_t)100) << (8*i));
+      strip.setPixelColor(NUM_LEDS*2 - pos[i], ((uint8_t)100) << (8*i));
+    }
+    strip.show();
+    //Then off for the next loop around
+    for (int i = 0 ; i < NUM_BALLS ; i++) {
+      strip.setPixelColor(pos[i], OFF);
+      strip.setPixelColor(NUM_LEDS*2 - pos[i], OFF);
+    }
 }
 

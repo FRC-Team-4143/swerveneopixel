@@ -11,7 +11,8 @@
 #define BLANKS 39
 #define SIDELEN 40
 
-#define STRIPLEN 160+16
+#define RINGLEN 16
+#define STRIPLEN 160+RINGLEN
 
 #define I2CADDR 0x4
 
@@ -218,6 +219,7 @@ uint32_t Wheel(byte WheelPos) {
   }
 }
 
+// from https://github.com/fibonacci162/LEDs/tree/master/BouncingBalls2014
 
 void doublebounce() {
     for (int i = 0 ; i < NUM_BALLS ; i++) {
@@ -238,14 +240,14 @@ void doublebounce() {
   
     //Choose color of LEDs, then the "pos" LED on
     for (int i = 0 ; i < NUM_BALLS ; i++) {
-      strip.setPixelColor(pos[i], ((uint8_t)100) << (8*i));
-      strip.setPixelColor(NUM_LEDS*2 - pos[i], ((uint8_t)100) << (8*i));
+      strip.setPixelColor(pos[i] + RINGLEN, ((uint8_t)100) << (8*i));
+      strip.setPixelColor(NUM_LEDS*2 - pos[i] + RINGLEN, ((uint8_t)100) << (8*i));
     }
     strip.show();
     //Then off for the next loop around
     for (int i = 0 ; i < NUM_BALLS ; i++) {
-      strip.setPixelColor(pos[i], OFF);
-      strip.setPixelColor(NUM_LEDS*2 - pos[i], OFF);
+      strip.setPixelColor(pos[i] + RINGLEN, OFF);
+      strip.setPixelColor(NUM_LEDS*2 - pos[i] + RINGLEN, OFF);
     }
 }
 

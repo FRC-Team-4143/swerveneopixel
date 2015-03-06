@@ -31,9 +31,9 @@ uint8_t pattern[16] = {0,0,0,0,0,20,60,100,150,255,255,255,150,100,60,20};
 uint8_t place = 0;
 
 
-#define NUM_LEDS          80
+#define NUM_LEDS          56
 #define GRAVITY           -9.81              // Downward (negative) acceleration of gravity in m/s^2
-#define h0                1                  // Starting height, in meters, of the ball (strip length)
+#define h0                3                  // Starting height, in meters, of the ball (strip length)
 #define NUM_BALLS         3                  // Number of bouncing balls you want (recommend < 7, but 20 is fun in its own way)
 
 float h[NUM_BALLS] ;                         // An array of heights
@@ -65,9 +65,15 @@ void setup() {
   }
 }
 
-void fillpattern () {
+void redfillpattern () {
   for(uint16_t i=0; i<strip.numPixels(); i++) {
       strip.setPixelColor(i, strip.Color(pattern[(i+place)%16],0,0));
+  }
+}
+
+void yellowfillpattern () {
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, strip.Color(pattern[(i+place)%16],pattern[(i+place)%16],0));
   }
 }
 
@@ -78,18 +84,27 @@ void loop() {
   //colorWipe(strip.Color(0, 0, 255), 50); // Blue
   //rainbow(20);
   //rainbowCycle(20);
-
-  if( goti2c == 0)
-    bloodmode();
-  else if( goti2c == 5)
+  if(goti2c == 1)   
+    colorWipe(BLUE, 0);
+  else if (goti2c == 2)
+    colorFill(RED);
+  else if (goti2c == 3)
+    colorFill(GREEN);
+  else if (goti2c == 4)
+    colorFill(YELLOW);
+  else if( goti2c == 0)
     doublebounce();
+  else if( goti2c == 5)
+    bloodmode();
   else if( goti2c == 6 )
-    rainbowCycle(50);
+    rainbow(0);
+  else if( goti2c == 7)
+    yellowbloodmode();
 }
 
 void bloodmode() {
   for(uint8_t i=0; i<5; i++) {
-      fillpattern();
+      redfillpattern();
       strip.show();
       place++;
       delay(10);
@@ -98,7 +113,27 @@ void bloodmode() {
    delay(300);
 
   for(uint8_t i=0; i<5; i++) {
-      fillpattern();
+      redfillpattern();
+      strip.show();
+      place++;
+      delay(10);
+   }
+
+   delay(1000);
+}
+
+void yellowbloodmode() {
+  for(uint8_t i=0; i<5; i++) {
+      yellowfillpattern();
+      strip.show();
+      place++;
+      delay(10);
+   }
+   
+   delay(300);
+
+  for(uint8_t i=0; i<5; i++) {
+      yellowfillpattern();
       strip.show();
       place++;
       delay(10);
@@ -119,14 +154,7 @@ void receiveEvent(int howMany)
   int x = Wire.read();    // receive byte as an integer
   //Serial.println(x);         // print the integer
   goti2c = c;
-  if(c == 1)   
-    colorWipe(BLUE, 0);
-  else if (c == 2)
-    colorFill(RED);
-  else if (c == 3)
-    colorFill(GREEN);
-  else if (c == 4)
-    colorFill(YELLOW);
+
 }
 
 // Fill the dots one after the other with a color
@@ -238,16 +266,20 @@ void doublebounce() {
       pos[i] = round( h[i] * (NUM_LEDS - 1) / h0);       // Map "h" to a "pos" integer index position on the LED strip
     }
   
-    //Choose color of LEDs, then the "pos" LED on
-    for (int i = 0 ; i < NUM_BALLS ; i++) {
-      strip.setPixelColor(pos[i] + RINGLEN, ((uint8_t)100) << (8*i));
-      strip.setPixelColor(NUM_LEDS*2 - pos[i] + RINGLEN, ((uint8_t)100) << (8*i));
-    }
+      strip.setPixelColor(pos[0] + RINGLEN + 24, RED);
+      strip.setPixelColor(NUM_LEDS*2 - pos[0] + RINGLEN + 24, RED);
+      strip.setPixelColor(pos[1] + RINGLEN + 24, GREEN);
+      strip.setPixelColor(NUM_LEDS*2 - pos[1] + RINGLEN + 24,GREEN);
+      strip.setPixelColor(pos[2] + RINGLEN + 24, BLUE);
+      strip.setPixelColor(NUM_LEDS*2 - pos[2] + RINGLEN + 24, BLUE);
+
     strip.show();
-    //Then off for the next loop around
-    for (int i = 0 ; i < NUM_BALLS ; i++) {
-      strip.setPixelColor(pos[i] + RINGLEN, OFF);
-      strip.setPixelColor(NUM_LEDS*2 - pos[i] + RINGLEN, OFF);
-    }
+      strip.setPixelColor(pos[0] + RINGLEN + 24, OFF);
+      strip.setPixelColor(NUM_LEDS*2 - pos[0] + RINGLEN + 24, OFF);
+      strip.setPixelColor(pos[1] + RINGLEN + 24, OFF);
+      strip.setPixelColor(NUM_LEDS*2 - pos[1] + RINGLEN + 24,OFF);
+      strip.setPixelColor(pos[2] + RINGLEN + 24, OFF);
+      strip.setPixelColor(NUM_LEDS*2 - pos[2] + RINGLEN + 24, OFF);
+
 }
 

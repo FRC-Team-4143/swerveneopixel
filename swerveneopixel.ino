@@ -26,9 +26,11 @@
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIPLEN, PIN, NEO_GRB + NEO_KHZ800);
 
-uint8_t goti2c = 0;
+uint8_t goti2c = 9;
+uint8_t goti2carg = 0;
 uint8_t pattern[16] = {0,0,0,0,0,20,60,100,150,255,255,255,150,100,60,20};
 uint8_t place = 0;
+uint8_t stopwait = 0;
 
 
 #define NUM_LEDS          56
@@ -77,6 +79,13 @@ void yellowfillpattern () {
   }
 }
 
+void fillpatterncolor (uint8_t red, uint8_t green, uint8_t blue) {
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(pattern[(i+place)%16]*red, pattern[(i+place)%16]*green, pattern[(i+place)%16]*blue));
+  }
+}
+
+
 void loop() {
   // Some example procedures showing how to display to the pixels:
   //colorWipe(strip.Color(255, 0, 0), 50); // Red
@@ -84,6 +93,7 @@ void loop() {
   //colorWipe(strip.Color(0, 0, 255), 50); // Blue
   //rainbow(20);
   //rainbowCycle(20);
+  stopwait = 0;
   if(goti2c == 1)   
     colorWipe(BLUE, 0);
   else if (goti2c == 2)
@@ -100,6 +110,36 @@ void loop() {
     rainbow(0);
   else if( goti2c == 7)
     yellowbloodmode();
+  else if( goti2c == 8)
+    rainbowblink(30);
+  else if( goti2c == 9)
+    pulsemode(0,0,100);
+}
+
+uint8_t stopdelay(int16_t wait) {
+  while(!stopwait && (wait -= 10) >= 0)
+    delay( 10);
+  return stopwait;
+}   
+
+void pulsemode(uint8_t red, uint8_t green, uint8_t blue) {
+  for(uint8_t i=0; i<5; i++) {
+      fillpatterncolor(red, green, blue);
+      strip.show();
+      place++;
+      delay(10);
+   }
+   
+   if(stopdelay(300)) return;
+
+  for(uint8_t i=0; i<5; i++) {
+      fillpatterncolor(red, green, blue);
+      strip.show();
+      place++;
+      delay(10);
+   }
+
+   if(stopdelay(1000)) return;
 }
 
 void bloodmode() {
@@ -110,7 +150,7 @@ void bloodmode() {
       delay(10);
    }
    
-   delay(300);
+   if(stopdelay(300)) return;
 
   for(uint8_t i=0; i<5; i++) {
       redfillpattern();
@@ -119,7 +159,7 @@ void bloodmode() {
       delay(10);
    }
 
-   delay(1000);
+   if(stopdelay(1000)) return;
 }
 
 void yellowbloodmode() {
@@ -130,7 +170,7 @@ void yellowbloodmode() {
       delay(10);
    }
    
-   delay(300);
+   if(stopdelay(300)) return;
 
   for(uint8_t i=0; i<5; i++) {
       yellowfillpattern();
@@ -139,7 +179,7 @@ void yellowbloodmode() {
       delay(10);
    }
 
-   delay(1000);
+   if(stopdelay(1000)) return;
 }
 
 
@@ -154,7 +194,8 @@ void receiveEvent(int howMany)
   int x = Wire.read();    // receive byte as an integer
   //Serial.println(x);         // print the integer
   goti2c = c;
-
+  goti2carg = x;
+  stopwait = 1;
 }
 
 // Fill the dots one after the other with a color
@@ -208,6 +249,24 @@ void frontback(uint8_t start) {
 }
 
 
+void rainbowblink(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256; j+=3) {
+    for(i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel((i+j) & 255));
+    }
+    strip.show();
+    if(stopdelay(wait)) return;
+    for(i = 0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, OFF);
+    }
+    strip.show();
+    if(stopdelay(wait)) return;
+  }
+}
+
+
 void rainbow(uint8_t wait) {
   uint16_t i, j;
 
@@ -216,7 +275,7 @@ void rainbow(uint8_t wait) {
       strip.setPixelColor(i, Wheel((i+j) & 255));
     }
     strip.show();
-    delay(wait);
+    if(stopdelay(wait)) return;
   }
 }
 
@@ -229,7 +288,7 @@ void rainbowCycle(uint8_t wait) {
       strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
     }
     strip.show();
-    delay(wait);
+    if(stopdelay(wait)) return;
   }
 }
 
@@ -273,7 +332,7 @@ void doublebounce() {
       strip.setPixelColor(pos[2] + RINGLEN + 24, BLUE);
       strip.setPixelColor(NUM_LEDS*2 - pos[2] + RINGLEN + 24, BLUE);
 
-    strip.show();
+      strip.show();
       strip.setPixelColor(pos[0] + RINGLEN + 24, OFF);
       strip.setPixelColor(NUM_LEDS*2 - pos[0] + RINGLEN + 24, OFF);
       strip.setPixelColor(pos[1] + RINGLEN + 24, OFF);
@@ -281,5 +340,6 @@ void doublebounce() {
       strip.setPixelColor(pos[2] + RINGLEN + 24, OFF);
       strip.setPixelColor(NUM_LEDS*2 - pos[2] + RINGLEN + 24, OFF);
 
+      if(stopwait) return;
 }
 
